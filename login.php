@@ -1,11 +1,17 @@
-<!DOCTYPE html>
 <?php
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+	'httponly' => true,
+	'samesite' => 'Lax',
+	'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+]);
 session_start();
 if (!empty($_SESSION['user']['id']) && time() - (int) ($_SESSION['last_activity'] ?? 0) <= 28800) {
 	header('Location: index.php');
 	exit;
 }
 ?>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">

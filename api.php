@@ -25,7 +25,7 @@ try {
     if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = strtolower(trim((string) ($input['email'] ?? '')));
         $password = (string) ($input['password'] ?? '');
-        $statement = $pdo->prepare('SELECT id, email, name, password_hash FROM users WHERE email = :email LIMIT 1');
+        $statement = $pdo->prepare('SELECT id, email, name, role, password_hash FROM users WHERE email = :email LIMIT 1');
         $statement->execute(['email' => $email]);
         $user = $statement->fetch();
 
@@ -40,6 +40,7 @@ try {
             'id' => (int) $user['id'],
             'email' => $user['email'],
             'name' => $user['name'],
+            'role' => $user['role'],
         ];
         $_SESSION['last_activity'] = time();
         respond(['ok' => true, 'user' => $_SESSION['user']]);
@@ -76,6 +77,7 @@ try {
             'id' => (int) $pdo->lastInsertId(),
             'email' => $email,
             'name' => $name,
+            'role' => 'analyst',
         ];
         $_SESSION['last_activity'] = time();
         respond(['ok' => true, 'user' => $_SESSION['user']]);
@@ -108,6 +110,20 @@ try {
     }
     $_SESSION['last_activity'] = time();
     $userId = (int) $_SESSION['user']['id'];
+
+    if ($action === 'profile' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $statement = $pdo->prepare(
+            "SELECT name, email, role, DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') AS createdAt,
+                    DATE_FORMAT(last_login, '%Y-%m-%d %H:%i') AS lastLogin
+             FROM users WHERE id = :user_id LIMIT 1"
+        );
+        $statement->execute(['user_id' => $userId]);
+        $profile = $statement->fetch();
+        if (!$profile) {
+            respond(['ok' => false, 'message' => 'Account not found.'], 404);
+        }
+        respond(['ok' => true, 'user' => $profile]);
+    }
 
     if ($action === 'incidents' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $incidents = $pdo->query(
@@ -227,8 +243,14 @@ try {
         $result = trim((string) ($input['result'] ?? ''));
         $status = (string) ($input['status'] ?? '');
 
-        if ($name === '' || strlen($name) > 2000 || !in_array($type, ['File', 'URL'], true)
-            || $result === '' || strlen($result) > 1020
+        $details = $input['details'] ?? null;
+        if ($details !== null && !is_string($details)) {
+            $details = json_encode($details, JSON_UNESCAPED_SLASHES);
+        }
+
+        if ($name === '' || mb_strlen($name) > 500 || !in_array($type, ['File', 'URL'], true)
+            || $result === '' || mb_strlen($result) > 255
+            || ($details !== null && strlen($details) > 65535)
             || !in_array($status, ['safe', 'suspicious', 'threat'], true)) {
             respond(['ok' => false, 'message' => 'Invalid scan record.'], 422);
         }
@@ -242,7 +264,7 @@ try {
             'type' => $type,
             'result' => $result,
             'status' => $status,
-            'details' => $input['details'] ?? null,
+            'details' => $details,
         ]);
         respond(['ok' => true]);
     }

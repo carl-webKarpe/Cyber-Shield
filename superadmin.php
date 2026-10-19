@@ -9,12 +9,18 @@ session_set_cookie_params([
 ]);
 session_start();
 
-if (empty($_SESSION['user']['id'])) {
+if (empty($_SESSION['user']['id']) || time() - (int) ($_SESSION['last_activity'] ?? 0) > 28800) {
+    $_SESSION = [];
+    session_destroy();
     header('Location: login.php');
     exit;
 }
 
-$role = $_SESSION['user']['role'] ?? 'superadmin';
+$role = (string) ($_SESSION['user']['role'] ?? '');
+if ($role !== 'admin') {
+    header('Location: index.php');
+    exit;
+}
 
 $_SESSION['last_activity'] = time();
 
