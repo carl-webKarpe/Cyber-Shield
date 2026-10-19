@@ -1,0 +1,19 @@
+# Cyber-Shield local secrets and runtime files
+config.local.php
+storage/uploads/*
+!storage/uploads/.gitkeep
+logs/*
+!logs/.gitkeep
+!logs/.htaccess
+run/*
+!run/.gitkeep
+!run/.htaccess
+
+# Cyber-Shield agent runtime files
+agent/config.json
+agent/state.json
+agent/queue.json
+agent/logs/
+agent/.venv/
+__pycache__/
+*.pyc

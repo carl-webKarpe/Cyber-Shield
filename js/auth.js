@@ -3,14 +3,28 @@
 
   const THEME_KEY = "cyberShieldTheme";
 
+  function csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || "";
+  }
+
   async function request(action, options = {}, params = {}) {
     const query = new URLSearchParams({ action, ...params });
+    const isUpload = options.body instanceof FormData;
     const response = await fetch("api.php?" + query.toString(), {
       credentials: "same-origin",
       ...options,
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      headers: {
+        ...(isUpload ? {} : { "Content-Type": "application/json" }),
+        "X-CSRF-Token": csrfToken(),
+        ...(options.headers || {}),
+      },
     });
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch (error) {
+      throw new Error("The Cyber-Shield server returned an unexpected response (HTTP " + response.status + ").");
+    }
     if (response.status === 401 && action !== "login" && action !== "session") {
       window.location.replace("login.php");
       throw new Error(result.message || "Please sign in again.");
@@ -137,11 +151,62 @@
       });
     },
 
-    saveScan(scan) {
-      return request("save-scan", {
+    getComputers() {
+      return request("computers").then((result) => result.computers);
+    },
+
+    setComputerAuthorized(id, authorized) {
+      return request("computer-authorize", {
         method: "POST",
-        body: JSON.stringify(scan),
+        body: JSON.stringify({ id, authorized }),
       });
+    },
+
+    getFileEvents(params = {}) {
+      return request("file-events", {}, params);
+    },
+
+    getAuditLogs() {
+      return request("audit-logs").then((result) => result.logs);
+    },
+
+    getUsers() {
+      return request("users").then((result) => result.users);
+    },
+
+    scanFile(file) {
+      const body = new FormData();
+      body.append("file", file);
+      return request("scan-file", { method: "POST", body }).then((result) => result.scan);
+    },
+
+    scanUrl(url) {
+      return request("scan-url", {
+        method: "POST",
+        body: JSON.stringify({ url }),
+      }).then((result) => result.scan);
+    },
+
+    scanFileEvent(id) {
+      return request("scan-event", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }).then((result) => result.scan);
+    },
+
+    requestAgentUpload(id) {
+      return request("request-upload", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }).then((result) => result.scan);
+    },
+
+    getScanStatus(id) {
+      return request("scan-status", {}, { id }).then((result) => result.scan);
+    },
+
+    getScanRequests() {
+      return request("scan-requests").then((result) => result.scans);
     },
   };
 

@@ -1,17 +1,22 @@
-<!DOCTYPE html>
 <?php
-session_start();
-if (!empty($_SESSION['user']['id']) && time() - (int) ($_SESSION['last_activity'] ?? 0) <= 28800) {
+declare(strict_types=1);
+
+require __DIR__ . '/includes/bootstrap.php';
+cs_start_session();
+if (cs_current_user($pdo) !== null) {
 	header('Location: index.php');
 	exit;
 }
+$allowRegistration = (bool) cs_config('allow_registration');
 ?>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="theme-color" content="#07111e">
-	<title>Sign in or create an account — Cyber Shield</title>
+	<meta name="csrf-token" content="<?php echo cs_e(cs_csrf_token()); ?>">
+	<title>Sign in — Cyber-Shield</title>
 	<script src="js/auth.js"></script>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,10 +25,10 @@ if (!empty($_SESSION['user']['id']) && time() - (int) ($_SESSION['last_activity'
 </head>
 <body class="login-page">
 	<main class="login-shell">
-		<section class="login-aside" aria-label="Cyber Shield security overview">
-			<a class="login-brand" href="login.php" aria-label="Cyber Shield sign in">
+		<section class="login-aside" aria-label="Cyber-Shield security overview">
+			<a class="login-brand" href="login.php" aria-label="Cyber-Shield sign in">
 				<svg class="brand-icon" viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M20 3 5 9v10c0 9.94 6.4 18.9 15 21 8.6-2.1 15-11.06 15-21V9L20 3z" fill="url(#loginShield)"/><path d="m14 20.5 4 4 8-8.5" stroke="#04141f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="loginShield" x1="5" y1="3" x2="35" y2="40"><stop stop-color="#39c6ff"/><stop offset="1" stop-color="#2e6fe8"/></linearGradient></defs></svg>
-				<span><strong>Cyber Shield</strong><small>THREAT DETECTION</small></span>
+				<span><strong>Cyber-Shield</strong><small>LAB SECURITY MONITORING</small></span>
 			</a>
 			<div class="login-aside-content">
 				<span class="eyebrow">SECURITY OPERATIONS</span>
@@ -34,9 +39,9 @@ if (!empty($_SESSION['user']['id']) && time() - (int) ($_SESSION['last_activity'
 				<div class="orbit orbit--outer"></div><div class="orbit orbit--inner"></div>
 				<span class="orbit-node orbit-node--one"></span><span class="orbit-node orbit-node--two"></span><span class="orbit-node orbit-node--three"></span>
 				<div class="orbit-core"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.3 3.4 9.2 8 11 4.6-1.8 8-5.7 8-11V5l-8-3z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></div>
-				<span class="visual-label visual-label--one">ENDPOINTS <b>248</b></span><span class="visual-label visual-label--two">THREAT FEED <b>LIVE</b></span>
+				<span class="visual-label visual-label--one">LAB AGENTS <b>LAN</b></span><span class="visual-label visual-label--two">VIRUSTOTAL <b>LIVE</b></span>
 			</div>
-			<div class="login-aside-foot"><span class="status-dot status-dot--safe"></span> Detection systems operational <span>v3.2.1</span></div>
+			<div class="login-aside-foot"><span class="status-dot status-dot--safe"></span> Cyber-Shield monitoring server <span>v<?php echo cs_e(CS_VERSION); ?></span></div>
 		</section>
 
 		<section class="login-main">
@@ -61,17 +66,17 @@ if (!empty($_SESSION['user']['id']) && time() - (int) ($_SESSION['last_activity'
 						</defs>
 					</svg>
 				</div>
-				<h2>Vision Guard</h2>
-				<p class="login-intro">Welcome back! Please log in to your account.</p>
-				<form id="loginForm" class="login-form" novalidate>
+				<h2>Welcome back</h2>
+				<p class="login-intro">Sign in to your Cyber-Shield workspace.</p>
+				<form id="loginForm" class="login-form" novalidate data-allow-registration="<?php echo $allowRegistration ? '1' : '0'; ?>">
 					<label for="loginName" data-register-field hidden>Full name</label>
 					<input id="loginName" name="name" type="text" placeholder="Your name" autocomplete="name" maxlength="100" data-register-field hidden>
-					<label for="loginEmail">Username or Email</label>
+					<label for="loginEmail">Email</label>
 					<div class="field-with-icon">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 1 0-16 0m8-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-						<input id="loginEmail" name="email" type="email" placeholder="Username or Email" autocomplete="username" required>
+						<input id="loginEmail" name="email" type="email" placeholder="you@lab.local" autocomplete="username" required>
 					</div>
-					<div class="password-label"><label for="loginPassword">Password</label><span id="passwordHint">Demo access</span></div>
+					<div class="password-label"><label for="loginPassword">Password</label><span id="passwordHint"></span></div>
 					<div class="field-with-icon password-field">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 1 1 10 0v2M6 10h12v10H6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						<input id="loginPassword" name="password" type="password" placeholder="Password" autocomplete="current-password" required>
@@ -79,20 +84,22 @@ if (!empty($_SESSION['user']['id']) && time() - (int) ($_SESSION['last_activity'
 					</div>
 					<div class="meta-row">
 						<label class="remember-row"><input type="checkbox" name="remember" checked> Remember me</label>
-						<button class="text-link" type="button">Forgot password?</button>
+						<span class="text-link" title="Ask your Cyber-Shield Super Admin to reset your password">Forgot password? Ask your Super Admin.</span>
 					</div>
 					<p id="loginMessage" class="login-message" role="status" aria-live="polite" hidden></p>
-					<button class="btn btn-primary login-submit" type="submit"><span>Login</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+					<button class="btn btn-primary login-submit" type="submit"><span>Sign in</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
 				</form>
-				<p class="login-switch"><span id="switchPrompt">New to Vision Guard?</span> <button id="switchAuthMode" type="button">Create an account</button></p>
-				<div class="demo-access"><div class="demo-head"><span>DEMO ACCOUNT</span><button id="useDemoAccount" type="button">Fill details</button></div><div><span>Email</span><code>analyst@cybershield.local</code></div><div><span>Password</span><code>Shield2026!</code></div></div>
+				<?php if ($allowRegistration): ?>
+				<p class="login-switch"><span id="switchPrompt">New to Cyber-Shield?</span> <button id="switchAuthMode" type="button">Create an account</button></p>
+				<?php else: ?>
+				<p class="login-switch">Accounts are created by your Cyber-Shield Super Admin.</p>
+				<?php endif; ?>
 				<div class="login-divider"><span>SECURE ACCESS</span></div>
-				<button type="button" class="scan-quick" id="scanQuickUrl"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4.5 9v6c0 5.6 3.4 10.1 7.5 11.5 4.1-1.4 7.5-5.9 7.5-11.5V9L12 2.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m9.2 12.8 1.5 1.5 4.1-4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Scan a URL</button>
-				<p class="security-note"><span>🔒</span> Your security is our priority.</p>
+				<a class="scan-quick" id="scanQuickUrl" href="index.php?view=url"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4.5 9v6c0 5.6 3.4 10.1 7.5 11.5 4.1-1.4 7.5-5.9 7.5-11.5V9L12 2.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m9.2 12.8 1.5 1.5 4.1-4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Scan a URL with VirusTotal</a>
+				<p class="security-note"><span>🔒</span> Authorized lab personnel only. Sign-ins are recorded in the Cyber-Shield audit log.</p>
 			</div>
 		</section>
 	</main>
 	<script src="js/login.js"></script>
 </body>
 </html>
-

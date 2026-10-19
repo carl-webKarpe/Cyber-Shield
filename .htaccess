@@ -1,0 +1,5 @@
+# Cyber-Shield: block direct access to configuration, SQL and dot-files when served by Apache (XAMPP).
+<FilesMatch "^(config\.local\.php|config\.example\.php|.*\.sql|.*\.bat|.*\.md)$">
+    Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.git

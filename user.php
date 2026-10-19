@@ -1,22 +1,9 @@
 <?php
 declare(strict_types=1);
 
-ini_set('session.use_strict_mode', '1');
-session_set_cookie_params([
-	'httponly' => true,
-	'samesite' => 'Lax',
-	'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-]);
-session_start();
-
-if (empty($_SESSION['user']['id']) || time() - (int) ($_SESSION['last_activity'] ?? 0) > 28800) {
-	$_SESSION = [];
-	session_destroy();
-	header('Location: login.php');
-	exit;
-}
-
-$_SESSION['last_activity'] = time();
+require __DIR__ . '/includes/bootstrap.php';
+cs_start_session();
+cs_require_page_user($pdo);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +11,8 @@ $_SESSION['last_activity'] = time();
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="theme-color" content="#07111e">
-	<title>My Profile — Cyber Shield</title>
+	<meta name="csrf-token" content="<?php echo cs_e(cs_csrf_token()); ?>">
+	<title>My Profile — Cyber-Shield</title>
 	<script src="js/auth.js"></script>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +24,7 @@ $_SESSION['last_activity'] = time();
 		<div class="view-head">
 			<div>
 				<h1>My Profile</h1>
-				<p class="subhead">Your Cyber Shield account details.</p>
+				<p class="subhead">Your Cyber-Shield account details.</p>
 			</div>
 				<div class="head-actions">
 					<button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to light mode" title="Switch to light mode">

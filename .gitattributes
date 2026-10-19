@@ -1,0 +1,4 @@
+*.bat text eol=crlf
+*.php text eol=lf
+*.py text eol=lf
+*.sql text eol=lf

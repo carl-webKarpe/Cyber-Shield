@@ -25,7 +25,7 @@
     document.getElementById("profileDisplayEmail").textContent = user.email || "";
     fields.name.textContent = name;
     fields.email.textContent = user.email || "Not available";
-    fields.role.textContent = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "Not available";
+    fields.role.textContent = user.role || "Not available";
     fields.createdAt.textContent = user.createdAt || "Not available";
     fields.lastLogin.textContent = user.lastLogin || "No sign-in recorded";
   }).catch((error) => {

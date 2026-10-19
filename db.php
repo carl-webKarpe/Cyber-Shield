@@ -1,24 +1,24 @@
 <?php
 /**
- * Cyber Shield
- * MySQL Database Connection
+ * Cyber-Shield
+ * MySQL Server connection (database administered with MySQL Workbench).
  *
- * XAMPP:
- * Host     = localhost
- * Database = cyber_shield
- * Username = root
- * Password = empty by default
+ * Connection settings come from config.local.php or the DB_HOST, DB_PORT,
+ * DB_NAME, DB_USER and DB_PASSWORD environment variables.
  */
 
-$host = getenv("DB_HOST") ?: "127.0.0.1";
-$dbname = getenv("DB_NAME") ?: "cyber_shield";
-$username = getenv("DB_USER") ?: "root";
-$password = getenv("DB_PASSWORD") ?: "";
+require_once __DIR__ . '/includes/config.php';
+
+$host = (string) cs_config('db_host');
+$port = (int) cs_config('db_port');
+$dbname = (string) cs_config('db_name');
+$username = (string) cs_config('db_user');
+$password = (string) cs_config('db_password');
 
 try {
 
     $pdo = new PDO(
-        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
         $username,
         $password,
         [
@@ -27,8 +27,8 @@ try {
             PDO::ATTR_EMULATE_PREPARES => false
         ]
     );
+    $pdo->exec("SET time_zone = '" . date('P') . "'");
 
 } catch (PDOException $e) {
-    throw new RuntimeException("Database connection failed.", 0, $e);
+    throw new RuntimeException("Cyber-Shield database connection failed.", 0, $e);
 }
-?>

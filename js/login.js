@@ -9,7 +9,6 @@
   const message = document.getElementById("loginMessage");
   const submitButton = form.querySelector("[type='submit']");
   const registerFields = document.querySelectorAll("[data-register-field]");
-  const demoAccess = document.querySelector(".demo-access");
   let isRegistering = false;
 
   function setAuthMode(registering) {
@@ -19,13 +18,12 @@
       ? "Create an account to access your security workspace."
       : "Sign in to your security workspace.";
     submitButton.querySelector("span").textContent = registering ? "Create account" : "Sign in";
-    document.getElementById("switchPrompt").textContent = registering ? "Already have an account?" : "New to Cyber Shield?";
+    document.getElementById("switchPrompt").textContent = registering ? "Already have an account?" : "New to Cyber-Shield?";
     document.getElementById("switchAuthMode").textContent = registering ? "Sign in" : "Create an account";
-    document.getElementById("passwordHint").textContent = registering ? "At least 8 characters" : "Demo access";
+    document.getElementById("passwordHint").textContent = registering ? "At least 8 characters" : "";
     nameInput.required = registering;
     passwordInput.autocomplete = registering ? "new-password" : "current-password";
     registerFields.forEach((field) => { field.hidden = !registering; });
-    demoAccess.hidden = registering;
     message.hidden = true;
     message.classList.remove("is-error", "is-success");
   }
@@ -84,9 +82,12 @@
     }
   });
 
-  document.getElementById("switchAuthMode").addEventListener("click", () => {
-    setAuthMode(!isRegistering);
-  });
+  const switchAuthMode = document.getElementById("switchAuthMode");
+  if (switchAuthMode && form.dataset.allowRegistration === "1") {
+    switchAuthMode.addEventListener("click", () => {
+      setAuthMode(!isRegistering);
+    });
+  }
 
   document.getElementById("togglePassword").addEventListener("click", (event) => {
     const button = event.currentTarget;
@@ -94,12 +95,5 @@
     passwordInput.type = showing ? "password" : "text";
     button.setAttribute("aria-pressed", String(!showing));
     button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
-  });
-
-  document.getElementById("useDemoAccount").addEventListener("click", () => {
-    emailInput.value = "analyst@cybershield.local";
-    passwordInput.value = "Shield2026!";
-    passwordInput.focus();
-    message.hidden = true;
   });
 })();
