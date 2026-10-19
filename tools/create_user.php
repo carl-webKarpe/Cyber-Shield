@@ -51,13 +51,21 @@ if (strlen($password) < 8) {
     fwrite(STDERR, "Password must be at least 8 characters.\n");
     exit(1);
 }
-$name = trim((string) ($options['name'] ?? '')) ?: strstr($email, '@', true);
+$givenName = trim((string) ($options['name'] ?? ''));
+$name = $givenName !== '' ? $givenName : strstr($email, '@', true);
 
+// Without --name, an existing account keeps its current name (e.g. when only resetting a password).
 $statement = $pdo->prepare(
     'INSERT INTO users (name, email, password_hash, role, is_active) VALUES (:name, :email, :hash, :role, 1)
-     ON DUPLICATE KEY UPDATE name = VALUES(name), password_hash = VALUES(password_hash), role = VALUES(role), is_active = 1'
+     ON DUPLICATE KEY UPDATE name = IF(:keep_name = 1, name, VALUES(name)), password_hash = VALUES(password_hash), role = VALUES(role), is_active = 1'
 );
-$statement->execute(['name' => substr($name, 0, 100), 'email' => $email, 'hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
+$statement->execute([
+    'name' => substr($name, 0, 100),
+    'email' => $email,
+    'hash' => password_hash($password, PASSWORD_DEFAULT),
+    'role' => $role,
+    'keep_name' => $givenName === '' ? 1 : 0,
+]);
 $pdo->prepare('INSERT IGNORE INTO user_settings (user_id) SELECT id FROM users WHERE email = :email')->execute(['email' => $email]);
 cs_audit($pdo, 'user.saved', sprintf('%s saved as %s from the command line', $email, cs_role_label($role)), ['ip' => 'cli']);
 echo "[Cyber-Shield] Saved {$email} as " . cs_role_label($role) . "\n";
